@@ -1,0 +1,32 @@
+🏠 House Modeling: Regression & Classification
+
+1. 데이터 처리 및 기초 연산
+scipy (stats): probplot(QQ-plot)을 그릴 때 사용하여 데이터가 정규분포인지 통계적으로 확인
+2. 데이터 시각화
+gridspec:그래프(Hist, QQ, Box)를 그릴 때, 화면을 불규칙하게(왼쪽 2개, 오른쪽 1개) 쪼개기 위해 사용
+mplot3d:변수 3개(가격, 연식, 상태)의 관계를 입체적으로 보기 위해 사용
+3. 머신러닝
+Preprocessing: LabelEncoder(문자→숫자), StandardScaler(정규화)
+Model Selection:GridSearchCV(격자 탐색)
+4. 하이퍼파라미터 최적화
+hyperopt: 베이지안 최적화 도구, 랜덤 포레스트나 부스팅 모델의 최적 파라미터를 찾을 때 사용
+2. 컬럼 설명
+price: 0원인 데이터가 있어 전처리 필요
+bedrooms: 4.5개 이상은 이상치로 간주하고 제거함
+sqft_basement: 0인 값(지하실 없음)이 많음 -> 유무(0/1) 변수 생성 고려
+yr_built: 오래된 집과 새집의 가격 차이 분석
+train0 (Scaled): StandardScaler 적용.
+용도: 선형 회귀, SVM 등 "숫자 크기에 민감한 모델"용.
+train0b (Unscaled): 원본 값 유지.
+용도: XGBoost, LightGBM 등 "숫자 크기 상관없는 트리 모델"용
+n_jobs=-1 : 병렬로 계산하라는 뜻
+QQ-Plot: 정규분포(종 모양)를 따르는지 확인
+분석 흐름 요약
+데이터 로드: 데이터를 불러오고 필요한 라이브러리 정리.
+시각화: 3D 그래프와 QQ-Plot 등을 통해 데이터의 분포 확인.
+필터링: '노이즈 데이터' 삭제.
+FE: 라벨링 및, 모델 성격에 맞춰 스케일링 데이터를 따로 만듬.
+변수 중요도 파악: 모델을 가볍게 돌려보고, 집값에 영향을 주는 핵심 변수 찾기
+모델 튜닝: GridSearch나 Hyperopt를 사용해 최적의 파라미터 찾기
+최종: 여러 모델을 비교하여 적절한 모델 정하기
+예측: 최종 선택된 모델로 실제 테스트 데이터의 집값을 예측.
