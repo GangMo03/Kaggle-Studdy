@@ -1,0 +1,108 @@
+import re
+import time
+import pandas as pd
+from playwright.sync_api import sync_playwright
+
+URL = "https://contents.ohou.se/projects?residence=0"
+BASE = "https://ohou.se/"
+
+def clean_int(x):
+    if not x:
+        return None
+    x = x.replace(",", "").strip()
+    return int(x) if x.isdigit() else None
+
+def crawl_simple(out_csv="ohouse_simple.csv"):
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        page = browser.new_page(viewport={"width": 1400, "height": 900})
+
+        page.goto(URL, wait_until="domcontentloaded", timeout=60000)
+        page.wait_for_timeout(2000)
+
+        seen = {}
+        last = 0
+        stable = 0
+
+        while True:
+            cards = page.locator('a[href^="/projects/"]')
+            cnt = cards.count()
+
+            for i in range(cnt):
+                a = cards.nth(i)
+
+                try:
+                    href = a.get_attribute("href")
+                    if not href:
+                        continue
+                    detail_url = BASE + href
+                    if detail_url in seen:
+                        continue
+
+                    text = a.inner_text().strip()
+                    if "스크랩" not in text or "조회" not in text:
+                        continue
+
+                    lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+                    # 가장 단순한 규칙
+                    title = lines[0] if len(lines) > 0 else None
+                    author = lines[1] if len(lines) > 1 else None
+
+                    scrap = view = None
+                    for l in lines:
+                        if "스크랩" in l:
+                            m = re.search(r"스크랩\s*([\d,]+)", l)
+                            if m:
+                                scrap = clean_int(m.group(1))
+                        if "조회" in l:
+                            m = re.search(r"조회\s*([\d,]+)", l)
+                            if m:
+                                view = clean_int(m.group(1))
+
+                    img_url = ""
+                    img = a.locator("img")
+                    if img.count() > 0:
+                        img_url = (
+                            img.first.get_attribute("src")
+                            or img.first.get_attribute("data-src")
+                            or ""
+                        )
+                        if img_url.startswith("data:image"):
+                            img_url = ""
+
+                    seen[detail_url] = {
+                        "title": title,
+                        "author": author,
+                        "scrap": scrap,
+                        "view": view,
+                        "image_url": img_url,
+                        "detail_url": detail_url,
+                    }
+
+                except Exception:
+                    continue
+
+            cur = len(seen)
+            print("collected:", cur)
+
+            if cur == last:
+                stable += 1
+            else:
+                stable = 0
+                last = cur
+
+            if stable >= 20:
+                break
+
+            page.mouse.wheel(0, 2000)
+            page.wait_for_timeout(700)
+
+        browser.close()
+
+    df = pd.DataFrame(seen.values())
+    df.to_csv(out_csv, index=False, encoding="utf-8-sig")
+    print("saved:", out_csv, "rows:", len(df))
+
+if __name__ == "__main__":
+    crawl_simple()
